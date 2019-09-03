@@ -13,14 +13,15 @@ knitr::opts_chunk$set(echo = TRUE)
 # setwd("Documents/research/projects/Lsax_fertilisation_time/")
 library(dplyr)
 dt = read.csv("../data/FLs_size_mm_sex.csv")
-head(dt)
+# head(dt)
 dt_sex = split(dt, dt$sex)
 for (f in 1:nrow(dt_sex$female)) {
   success=FALSE
   i=1
   f_log = log(dt_sex$female$size_mm[f])
   while (!success) {
-    m_row = sample_n(dt_sex$male, size = 1, replace = FALSE)
+    m_row = sample_n(dt_sex$male, size = 1)
+    m_idx = which(dt_sex$male$snail_ID==m_row[,"snail_ID"])
     m_log = log(m_row[,"size_mm"])
     or = round(f_log - m_log, 1)
     # cat(or, "\n")
@@ -28,6 +29,7 @@ for (f in 1:nrow(dt_sex$female)) {
     i = i + 1
     if (or >= 0.2 & or <= 0.4) {
       cat("Female ID", dt_sex$female$snail_ID[f], "matched with male ID", m_row[,"snail_ID"], "\n")
+      dt_sex$male = dt_sex$male[-m_idx,]
     }
   }
 }
