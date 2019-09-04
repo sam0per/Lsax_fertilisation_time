@@ -1,0 +1,18 @@
+---
+title: "Round II of the fertilisation time _L. saxatilis_"
+author: "Samuel"
+date: "4/9/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+The new combination to use for round II of the fertilisation time experiment is:
+
+```{r, echo=FALSE}
+library(knitr)
+new_comb = read.csv("../data/FLs_size_mm_sex_after_male_II.csv")
+kable(new_comb)
+```
