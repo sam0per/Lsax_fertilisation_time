@@ -15,8 +15,8 @@ library(dplyr)
 dt = read.csv("../data/FLs_size_mm_sex_after_male.csv")
 # head(dt)
 dt_sex = split(dt, dt$sex)
-dt_sex$female$fgroup = c("G1", "G5", "G30")
 dt_sex$female = filter(dt_sex$female, size_mm > 8.5)
+dt_sex$female$fgroup = c("G1", "G5", "G30")
 for (f in 1:nrow(dt_sex$female)) {
   success=FALSE
   i=1
