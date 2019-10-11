@@ -9,3 +9,8 @@ Or generate the intermediate Latex source like this:
 ```
 pandoc --filter pandoc-citeproc --bibliography=FLs_references.bib --variable classoption=twocolumn --variable papersize=a4paper -s README.md -t latex -o FLs_readme.txt
 ```
+
+Or produce a Microsoft Word document with bibliography:
+```
+pandoc --filter pandoc-citeproc --bibliography=FLs_references.bib -s README.md -o FLs_readme.docx
+```
