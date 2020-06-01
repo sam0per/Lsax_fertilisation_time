@@ -1,0 +1,63 @@
+---
+title: "FLs generate mating pairs"
+author: "Samuel"
+date: "May 2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+rm(list = ls())
+# setwd("Documents/research/projects/Lsax_fertilisation_time/")
+library(dplyr)
+dt = read.csv("../data/FLs_size_mm_sex.csv")
+ecotype = "crab"
+# head(dt)
+dt_sex = split(dt[dt$ecotype==ecotype, ], dt[dt$ecotype==ecotype, "sex"])
+
+table(dt_sex$female$notes)
+dt_sex$female <- dt_sex$female[dt_sex$female$notes=="", ]
+rrows <- sample(nrow(dt_sex$female))
+dt_sex$female <- dt_sex$female[rrows, ]
+# nrow(dt_sex$female)%%3
+# min(dt_sex$female$size_mm)
+# sum(dt_sex$female$size_mm>7)
+
+dt_sex$female = filter(dt_sex$female, size_mm > min(dt_sex$female$size_mm))
+FTgrp <- c("G1", "G5", "G30")
+# dt_sex$female$fgroup = c("G1", "G5", "G30")
+dt_sex$female$fgroup <- sample(x = FTgrp, size = nrow(dt_sex$female), replace = TRUE, prob = c(0.3, 0.3, 0.3))
+table(dt_sex$female$fgroup)
+
+for (f in 1:nrow(dt_sex$female)) {
+  dt_sex$male$row_ID <- 1:nrow(dt_sex$male)
+  success <- FALSE
+  i <- 1
+  f_log <- log(dt_sex$female$size_mm[f])
+  while (!success) {
+    if (i == 30) {
+      success <- TRUE
+    } else {
+      m_row = sample_n(dt_sex$male, size = 3)
+      m_idx = m_row$row_ID
+      # m_idx = which(dt_sex$male$snail_ID==m_row[,"snail_ID"])
+      m_log = log(m_row[,"size_mm"])
+      or = round(f_log - m_log, 1)
+      # cat(or, "\n")
+      success <- sum(or >= 0 & or <= 0.4)>=2
+      # cat(i, "\n")
+      if (sum(or >= 0 & or <= 0.4)>=2) {
+        cat("Female ID", as.character(dt_sex$female$snail_ID)[f], "matched with male ID", as.character(m_row[,"snail_ID"]), "(", or, ")", "in time group", dt_sex$female$fgroup[f], "\n")
+        dt_sex$male = dt_sex$male[-m_idx,]
+      } else {
+        i = i + 1
+        # cat(i, "\n")
+      }
+    }
+  }
+}
+```
+
