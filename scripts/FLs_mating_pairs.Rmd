@@ -41,15 +41,15 @@ for (f in 1:nrow(dt_sex$female)) {
     if (i == 30) {
       success <- TRUE
     } else {
-      m_row = sample_n(dt_sex$male, size = 3)
+      m_row = sample_n(dt_sex$male, size = 2)
       m_idx = m_row$row_ID
       # m_idx = which(dt_sex$male$snail_ID==m_row[,"snail_ID"])
       m_log = log(m_row[,"size_mm"])
       or = round(f_log - m_log, 1)
       # cat(or, "\n")
-      success <- sum(or >= 0 & or <= 0.4)>=2
+      success <- sum(or >= 0 & or <= 0.5)==2
       # cat(i, "\n")
-      if (sum(or >= 0 & or <= 0.4)>=2) {
+      if (sum(or >= 0 & or <= 0.5)==2) {
         cat("Female ID", as.character(dt_sex$female$snail_ID)[f], "matched with male ID", as.character(m_row[,"snail_ID"]), "(", or, ")", "in time group", dt_sex$female$fgroup[f], "\n")
         dt_sex$male = dt_sex$male[-m_idx,]
       } else {
@@ -59,5 +59,9 @@ for (f in 1:nrow(dt_sex$female)) {
     }
   }
 }
+```
+
+```{r}
+dt[dt$size_mm==dt[dt$snail_ID=="FT178", "size_mm"], ]
 ```
 
