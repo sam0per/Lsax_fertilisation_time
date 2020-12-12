@@ -44,15 +44,15 @@ FT142,,12,male,crab,,,,,,,,,S
 FT143,,13,male,crab,,,,,,,,,S
 K50,ARTIFICIAL,9,female,crab,30,8,21,19,41,28,U,in tank 20200602,S
 J00,,8,female,crab,,,,,,,,,S
-K00,NONE,8.5,female,crab,Control,25,0,0,0,0,U,in tank 20200611,S
-H00,ARTIFICIAL,9,female,crab,5,9,0,2,6,0,U,in tank 20200611,S
+K00,NONE,8.5,female,crab,Control,21,4,0,0,0,U,in tank 20200611,S
+H00,ARTIFICIAL,9,female,crab,5,3,6,2,6,0,U,in tank 20200611,S
 J50,,7.5,female,crab,,,,,,,,,S
 H50,,8,female,crab,,,,,,,,,S
 K51,,8,female,crab,,,,,,,,,S
 K01,,8,female,crab,,,,,,,,,S
 J51,ARTIFICIAL,9,female,crab,30,25,17,39,49,13,U,in tank 20200525,S
 J01,,7.5,female,crab,,,,,,,,,S
-H51,NONE,9,female,crab,Control,65,0,0,0,0,U,in tank 20200611,S
+H51,NONE,9,female,crab,Control,42,23,0,0,0,U,in tank 20200611,S
 H01,,8.5,female,crab,,,,,,,,,S
 K52,,8.5,female,crab,,,,,,,,,S
 K02,,8.5,female,crab,,,,,,,,,S
@@ -113,10 +113,10 @@ H08,NATURAL,13,female,crab,3,3,23,1,28,1,U,in tank 20200604,S
 H09,ARTIFICIAL,12,female,crab,1,15,12,66,79,42,U,in tank 20200527,S
 H10,,12.5,female,crab,,,,,,,,,S
 H11,ARTIFICIAL,12,female,crab,1,0,0,0,0,0,U,in tank 20200528,S
-H12,ARTIFICIAL,12.5,female,crab,30,16,0,0,0,0,U,in tank 20200528,S
+H12,ARTIFICIAL,12.5,female,crab,30,5,11,0,0,0,U,in tank 20200528,S
 H13,,11,female,crab,,,,,,,,,S
 H14,ARTIFICIAL,10,female,crab,5,2,5,2,6,0,U,in tank 20200526,S
-H15,ARTIFICIAL,10,female,crab,30,0,0,0,0,0,U,in tank 20200601,S
+H15,ARTIFICIAL,10,female,crab,30,1,1,0,0,0,U,in tank 20200601,S
 FT187,,5,male,wave,,,,,,,,,S
 FT188,,5,male,wave,,,,,,,,,S
 FT189,,6,male,wave,,,,,,,,,S
@@ -135,7 +135,7 @@ H17,,10,female,crab,,,,,,,,,S
 H18,ARTIFICIAL,9,female,crab,1,8,4,10,7,0,U,in tank 20200603,S
 H19,ARTIFICIAL,9.5,female,crab,5,0,0,0,0,0,U,in tank 20200604,S
 H20,ARTIFICIAL,9.5,female,crab,30,0,0,10,0,0,U,in tank 20200611,S
-H21,ARTIFICIAL,10,female,crab,1,18,0,0,0,0,U,in tank 20200602,S
+H21,ARTIFICIAL,10,female,crab,1,11,7,0,0,0,U,in tank 20200602,S
 H22,ARTIFICIAL,9,female,crab,5,0,0,0,0,0,U,in tank 20200602,S
 H23,ARTIFICIAL,11,female,crab,1,2,1,68,84,15,U,in tank 20200609,S
 H24,,9,female,crab,,,,,,,,,S
