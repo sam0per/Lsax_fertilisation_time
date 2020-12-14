@@ -1,0 +1,160 @@
+---
+title: "Fertilisation project - GLM"
+author: "SP"
+date: "12/11/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library("glmmTMB")
+library("bbmle")
+library("ggplot2")
+library("patchwork")
+library("kableExtra")
+library("knitr")
+library("emdbook")
+```
+
+The plot on the left is to illustrate the difference in the proportion of developed embryos between control (NONE) and all treatments combined (ARTIFICIAL). The right plot shows the same y variable but divided into the three different treatments. In both figures, the size of the points are proportional to the total number of eggs and embryos in each female (n dev + n eggs).  
+
+```{r read_data}
+dd <- read.csv(file = "../data/Fert_Lsax_clean.csv", stringsAsFactors = FALSE)
+
+dd <- dd[dd$vip=="S", ]
+dd$misdev <- NULL
+dd <- dd[dd$termination!="NATURAL", ]
+dd$proj <- ifelse(test = dd$notes=="pilot", yes = "pilot", no = "followup")
+dd$tot <- dd$egg+dd$dev
+dd$p_egg <- dd$egg/dd$tot
+
+dd$time_min <- ifelse(test = dd$time_min=="10" | dd$time_min=="30", yes = "10+", no = dd$time_min)
+dd$time_min <- factor(x = dd$time_min, levels = c("Control", "1", "5", "10+"))
+dd$termination <- factor(x = dd$termination, levels = c("NONE", "ARTIFICIAL"))
+
+CTs <- ggplot(data = dd, aes(x = time_min, y = p_dev)) +
+  geom_point(aes(size=tot), alpha=0.4) +
+  labs(y = "", size = "") +
+  theme(legend.position = "none")
+CT <- ggplot(data = dd, aes(x = termination, y = p_dev)) +
+  geom_point(aes(size=tot), alpha=0.4) +
+  labs(y = "n. developed/(n. dev. + n. eggs)", size = "n dev + n eggs") +
+  theme(legend.position = "top", legend.text = element_text(size = 8),
+        legend.title = element_text(size = 8))
+CT + CTs
+```
+
+\  
+
+There were some questions about the above figures.  
+
+1. Do females with few of no developing embryos have also very low number of eggs?
+
+The size of the dots in the figure is proportional to the sum of eggs and embryos of each female and it looks like three females with low or no developing embryos do not have low number of eggs. Here is a table with the number of eggs for such females and other information.  
+
+```{r tb_neggs}
+knitr::kable(dd[dd$termination=="ARTIFICIAL" & dd$dev==0, ], format = "latex", row.names = FALSE) %>%
+  kable_styling(latex_options="scale_down")
+```
+
+\  
+
+2. Can the few and no sperms group be separated?
+
+From the table above, females cannot be separated by any of the columns/variables. These females are small and big, wave and crab, etc.
+
+\  
+
+3. Assuming that fertilization did not occur for these females (e.g., either sperms were not transferred because of the male, or the male-female combination was incompatible and embryos do simply not develop properly) what happens if these “failing females” are removed before analysing the rest?
+
+    a) Analysis without "failing females"
+    
+    The beta-binomial (BB) model returned much lower SEs of the parameter estimates than the binomial (B) and quasi-binomial (QB) model (table below onlt for BB model). However, I was not able to compare the three models using the likelihood ratio test because fitting the BB model using `glm()` did not return the log-likelihood nor the deviance.
+  
+```{r without}
+id_without <- dd[dd$termination=="ARTIFICIAL" & dd$dev==0, "snail_ID"]
+dd_wo <- dd[!dd$snail_ID %in% id_without, ]
+fit_bin <- glm(formula = p_dev ~ termination, weights = tot, family = "binomial", data = dd_wo)
+fit_betabin <- summary(glm(formula = p_dev ~ termination, weights = tot, family = "betabinomial", data = dd_wo))
+fit_quasibin <- glm(formula = p_dev ~ termination, weights = tot, family = "quasibinomial", data = dd_wo)
+devia <- data.frame(binomial=deviance(fit_bin), betabin=deviance(fit_betabin), quasibin=deviance(fit_quasibin))
+kable(round(fit_betabin$coefficients, 3))
+```
+
+\  
+
+What I have estimated instead was the Tarone's Z statistic which can be used as goodness of fit test of the Binomial distribution against the BB distribution. I have followed this [tutorial link](https://rpubs.com/cakapourani/beta-binomial). First, I have inferred two parameters, the probability of observing developed embryos $\mu$ and the dispersion $\rho$. The probability $\mu$ was calculated for the whole dataset of no "failing females" and without using "termination" as the fixed effect. This is certainly not appropriate for what we ultimately want to test (i.e., difference between control and treatments) but it can be still fine if we simply want to see whether the a model with dispersion (BB model) fits the data better than a model without (B model). The analysis of the Tarone's Z statistic should come earlier than the summary of the BB model (table above) and it is here now because I wanted to show first that I could not use the likelihood ratio test to compare B, BB and BQ models. Actually, I did compare B and BQ and the difference was not significant which is strange given that BQ and BB are both models with a dispersion parameter.
+
+```{r bb_pars, message=FALSE}
+library("VGAM")
+fit <- Coef(VGAM::vglm(cbind(dev, tot-dev) ~ 1, betabinomial, data = dd_wo, trace = FALSE))
+print(paste0("mu_hat: ", round(fit[1], 3), "     rho_hat: ", round(fit[2], 3)))
+# Coef(VGAM::vglm(cbind(dev, tot-dev) ~ 1, betabinomial, data = dd, trace = FALSE))
+```
+
+To assess which of the two models (B and BB) fitted the data best, I have simulated 1000 data points given a beta-binomial distribution with $\mu = 0.4$ and $\rho = 0.6$ and also 1000 data points given a beta-binomial distribution with $\mu = 0.4$ and $\rho = 0$ (i.e., a binomial distribution with $\mu = 0.4$). A dispersion of 0.6 is high and makes the plot look squeezed so I have used $\rho = 0.3$ to show the difference between the two simulated datasets (figure below).
+
+```{r tarone, message=FALSE, warning=FALSE}
+library("dplyr")
+M <- 1000
+alt_hyp = null_hyp <- vector("numeric", length = M)
+for (i in 1:M) {
+  # Total number of females
+  C <- nrow(dd_wo)
+  # Total number eggs+embryos in each female
+  n <- dd_wo$tot
+  ##---
+  # Compute Tarone's Z statistic for overdispersion Beta Binomial
+  ##---
+  # Generate synthetic data with \mu = 0.4 and \rho = 0.3
+  m_alt <- VGAM::rbetabinom(length(n), n, prob = 0.4, rho = 0.3)
+  p_hat = sum(m_alt) / sum(n)
+  S = sum( (m_alt - n * p_hat)^2 / (p_hat * (1 - p_hat)) )
+  Z_score = (S - sum(n)) / sqrt(2 * sum(n * (n - 1)))
+  alt_hyp[i] <- Z_score 
+  
+  ##---
+  # Compute Tarone's Z statistic for Binomial
+  ##---
+  # Generate synthetic data with \mu = 0.4 and \rho = 0
+  m_null <- rbetabinom(length(n), n, prob = 0.4, rho = 0)
+  # Compute Tarone's Z statistic
+  p_hat = sum(m_null) / sum(n)
+  S = sum( (m_null - n * p_hat)^2 / (p_hat * (1 - p_hat)) )
+  Z_score = (S - sum(n)) / sqrt(2 * sum(n * (n - 1)))
+  null_hyp[i] <- Z_score
+}
+# Melt object for ggplot2
+dt <- data.table::as.data.table(reshape::melt(list(Null = null_hyp, Alternative = alt_hyp)))
+dt <- setNames(object = dt, c("value", "Hypothesis"))
+# Create histogram plot
+p <- ggplot(dt, aes(x = value, color = Hypothesis, fill = Hypothesis)) +
+  geom_histogram(aes(y = ..density..), alpha = 0.3, 
+                 position = "dodge", bins = 100) +
+  geom_vline(xintercept = 0.2, linetype = "dashed", size = 0.7) + 
+  # stat_function(fun = dnorm, colour = "cornflowerblue", size = 1,
+  #               args = list(mean = 0, sd = 1)) +
+  scale_x_continuous(limits = c(-3,101)) +
+  labs(title = "Tarone's Z score distribution",x = "Z score",y = "Density") +
+  scale_fill_brewer(palette = "Dark2") +
+  scale_color_brewer(palette = "Dark2")
+print(p)
+```
+
+The light orange histogram is the empirical distribution under the null/binomial model and the green coloured histogram is the distribution of the Z-scores under a Beta Binomial distribution. If what I have done makes sense, then it should be clear from the figure above that the BB model is a better fit to our data.
+
+I have performed the same steps for the observed dataset with "failing females" and the difference is that $\mu$ is lower and $\rho$ is higher which is what we expected if we included treated females with no developed embryos. 
+
+b) Analysis with "failing females"
+    
+```{r bb_pars_f, message=FALSE, warning=FALSE}
+fit <- Coef(vglm(cbind(dev, tot-dev) ~ 1, betabinomial, data = dd, trace = FALSE))
+print(paste0("mu_hat: ", round(fit[1], 3), "     rho_hat: ", round(fit[2], 3)))
+detach("package:VGAM", unload=TRUE)
+
+fit_betabin <- summary(glm(formula = p_dev ~ termination, weights = tot, family = "betabinomial", data = dd))
+kable(round(fit_betabin$coefficients, 3))
+```
+
+With or without "failing females", the proportions of developed embryos is significantly higher than that of the control. The next step is to check for differences between treatments but I am going to wait for your feedbacks on what I have tried so far.

@@ -133,3 +133,17 @@ round(plogis(c(Control=unname(ff[1]),ff[-1]+ff[1])),3)
 
 zinbm0_B = update(fit_zibetabin, ziformula=~(1|termination))
 fixef(zinbm0_B)[["zi"]]
+# 
+# 
+# GLM and ML
+id_without <- dd[dd$termination=="ARTIFICIAL" & dd$dev==0, "snail_ID"]
+dd_wo <- dd[!dd$snail_ID %in% id_without, ]
+fit_bin <- glm(formula = p_dev ~ termination, weights = tot, family = "binomial", data = dd_wo)
+summary(fit_bin)
+fit_betabin <- glm(formula = p_dev ~ termination, weights = tot, family = "betabinomial", data = dd_wo)
+sfit_betabin <- summary(fit_betabin)
+rbind(sfit_betabin$coefficients, dispersion=sfit_betabin$dispersion)
+fit_quasibin <- glm(formula = p_dev ~ termination, weights = tot, family = "quasibinomial", data = dd_wo)
+summary(fit_quasibin)
+devia <- c(binomial=deviance(fit_bin), betabin=deviance(fit_betabin), quasibin=deviance(fit_quasibin))
+devia

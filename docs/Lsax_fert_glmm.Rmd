@@ -1,7 +1,7 @@
 ---
 title: "Fertilisation project - GLMM"
 author: "SP"
-date: "12/11/2020"
+date: "12/13/2020"
 output: pdf_document
 ---
 
@@ -12,55 +12,16 @@ library("glmmTMB")
 library("bbmle")
 library("ggplot2")
 library("patchwork")
+library("kableExtra")
+library("knitr")
+library("emdbook")
 ```
-
-The plot on the left is to illustrate the difference in the proportion of developed embryos between control (NONE) and all treatments combined (ARTIFICIAL). The right plot shows the same y variable but divided into the three different treatments. In both figures, the size of the points are proportional to the total number of eggs and embryos in each female (n dev + n eggs).  
-
-```{r read_data, echo=FALSE}
-dd <- read.csv(file = "../data/Fert_Lsax_clean.csv", stringsAsFactors = FALSE)
-
-dd <- dd[dd$vip=="S", ]
-dd$misdev <- NULL
-dd <- dd[dd$termination!="NATURAL", ]
-dd$proj <- ifelse(test = dd$notes=="pilot", yes = "pilot", no = "followup")
-dd$tot <- dd$egg+dd$dev
-dd$p_egg <- dd$egg/dd$tot
-
-dd$time_min <- ifelse(test = dd$time_min=="10" | dd$time_min=="30", yes = "10+", no = dd$time_min)
-dd$time_min <- factor(x = dd$time_min, levels = c("Control", "1", "5", "10+"))
-dd$termination <- factor(x = dd$termination, levels = c("NONE", "ARTIFICIAL"))
-
-CTs <- ggplot(data = dd, aes(x = time_min, y = p_dev)) +
-  geom_point(aes(size=tot)) +
-  labs(y = "", size = "") +
-  theme(legend.position = "none")
-CT <- ggplot(data = dd, aes(x = termination, y = p_dev)) +
-  geom_point(aes(size=tot)) +
-  labs(y = "n. developed/(n. dev. + n. eggs)", size = "n dev + n eggs") +
-  theme(legend.position = "top", legend.text = element_text(size = 8),
-        legend.title = element_text(size = 8))
-CT + CTs
-```
-
-\  
-
-There were some questions about the above figures.  
-
-1. Do females with few of no developing embryos have also very low number of eggs?
-The size of the dots in the figure is proportional to the sum of eggs and embryos of each female and it looks like females with low or no developing embryos do not have low number of eggs. To be sure, here is a table with the number of eggs for such females.  
-
-```{r tb_neggs}
-knitr::kable()
-```
-
-
-Second I think that these females have some problem. Either there were no sperm transferred because of the male, or the male-female combination was incompatible and embryos do simply not develop properly. I can have a look again on those photos if you give me the numbers of the females. What happens if these “failing females” are removed before analysing the rest…
 
 For now, let's forget about the different treatments (right plot) and just analyse the difference in proportions of developed embryos between control and all treatment combined (left plot). I have found three models that we can fit to the proportions of developed embryos.  
 
 1. A model without random effects that uses a binomial function and the sum of eggs and embryos (tot) in each female as weights:
 
-```{r binomial}
+```{r binomial, echo=TRUE}
 fit_bin <- glm(formula = p_dev ~ termination, weights = tot, family = "binomial",
                data = dd)
 ```
@@ -69,7 +30,7 @@ fit_bin <- glm(formula = p_dev ~ termination, weights = tot, family = "binomial"
 
 2. A mixed model that uses a binomial function with control and treatments (termination) as fixed effect and female ID as random effect (snail_ID):
 
-```{r mixbin}
+```{r mixbin, echo=TRUE}
 fit_mixbin <- glmmTMB(formula = p_dev ~ termination + (1|snail_ID),
                       data = dd,
                       family = "binomial",
@@ -80,7 +41,7 @@ fit_mixbin <- glmmTMB(formula = p_dev ~ termination + (1|snail_ID),
 
 3. A mixed model that uses a beta-binomial function for including overdispersion (quasi-binomial has been removed from GLMMs) with the same effects as in model 2:
 
-```{r betabin}
+```{r betabin, echo=TRUE}
 fit_betabin <- glmmTMB(formula = p_dev ~ termination + (1|snail_ID),
                        data = dd,
                        family = "betabinomial",
@@ -89,7 +50,7 @@ fit_betabin <- glmmTMB(formula = p_dev ~ termination + (1|snail_ID),
 
 \  
 
-```{r model_comp, echo=FALSE}
+```{r model_comp}
 AICtab(fit_bin, fit_mixbin, fit_betabin)
 ```
 
@@ -105,7 +66,7 @@ The standard errors of the parameters are large and even if the estimates of con
 
 The fitted values are either 0 or 0.5 (see red dots below) which are certainly not reliable.
 
-```{r betabin_fig, echo=FALSE}
+```{r betabin_fig}
 dd$betabin_fit <- fitted(fit_betabin)
 # hist(fitted(fit_betabin), breaks = 20)
 ggplot(data = dd, aes(x = termination, y = p_dev)) +
@@ -128,7 +89,7 @@ Here, the errors are even higher as expected given that this model did not fit t
 
 For curiosity, I have tried to use the proportion of eggs as the y variable. I have run the same steps as above and as expected the best model is still the beta-binomial and nothing has really changed.
 
-```{r egg_y, echo=FALSE, warning=FALSE, message=FALSE}
+```{r egg_y, warning=FALSE, message=FALSE}
 fit_bin <- glm(formula = p_egg ~ termination, weights = tot, family = "binomial",
                data = dd)
 fit_mixbin <- glmmTMB(formula = p_egg ~ termination + (1|snail_ID),

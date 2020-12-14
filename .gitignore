@@ -1,3 +1,6 @@
 
 scripts/.Rhistory
 .DS_Store
+docs/.Rhistory
+*.eni
+docs/Lsax_fert_endnote*
