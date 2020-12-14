@@ -10,6 +10,9 @@ library("dplyr")
 rm(list = ls())
 dd <- read.csv(file = "Lsax_fertilisation_time/data/Fert_Lsax_clean.csv", stringsAsFactors = FALSE)
 
+table(dd$stage)
+dd[dd$stage=="SAME",]
+
 dd <- dd[dd$vip=="S", ]
 dd$misdev <- NULL
 dd <- dd[dd$termination!="NATURAL", ]
