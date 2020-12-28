@@ -15,16 +15,32 @@ dd[dd$stage=="SAME",]
 
 dd <- dd[dd$vip=="S", ]
 dd$misdev <- NULL
-dd <- dd[dd$termination!="NATURAL", ]
+
+nrow(dd[dd$termination=="NATURAL", ])
+table(dd$termination)
+table(dd$ecotype)
+
 dd$proj <- ifelse(test = dd$notes=="pilot", yes = "pilot", no = "followup")
+data.frame(table(dd$ecotype, dd$proj))
+tb1 <- data.frame(table(dd$termination, dd$ecotype, dd$time_min, dd$proj))
+tb1 <- tb1[tb1$Freq!=0, ]
+
+dd <- dd[dd$termination!="NATURAL", ]
+
 dd$tot <- dd$egg+dd$dev
 dd$p_egg <- dd$egg/dd$tot
 table(dd$tot)
+d0 <- nrow(dd[dd$tot==0,])
 dd <- dd[dd$tot!=0,]
 
 dd$time_min <- ifelse(test = dd$time_min=="10" | dd$time_min=="30", yes = "10+", no = dd$time_min)
 dd$time_min <- factor(x = dd$time_min, levels = c("Control", "1", "5", "10+"))
 dd$termination <- factor(x = dd$termination, levels = c("NONE", "ARTIFICIAL"))
+
+tb1 <- data.frame(table(dd$termination, dd$ecotype, dd$time_min, dd$proj))
+tb1 <- tb1[tb1$Freq!=0, ]
+sum(tb1$Freq)
+data.frame(table(dd$time_min))
 
 CTs <- ggplot(data = dd, aes(x = time_min, y = p_dev)) +
   geom_point(aes(size=tot), alpha=0.4) +
@@ -41,10 +57,26 @@ fit <- Coef(vglm(cbind(dev, tot-dev) ~ 1, betabinomial, data = dd, trace = FALSE
 fit
 
 detach("package:VGAM", unload=TRUE)
+table(dd$proj)
+
+ggplot(data = dd, aes(x = proj, y = p_dev)) +
+  geom_point(aes(size=tot), alpha=0.4) +
+  labs(y = "n. developed/(n. dev. + n. eggs)", size = "n dev + n eggs") +
+  theme(legend.position = "top", legend.text = element_text(size = 8),
+        legend.title = element_text(size = 8))
+
+# fit_betabin <- glm(formula = p_dev ~ proj, weights = tot, family = "betabinomial", data = dd)
+# summary(fit_betabin)
+
+fit_betabin <- glm(formula = p_dev ~ proj*termination, weights = tot, family = "betabinomial", data = dd)
+summary(fit_betabin)
+
 fit_betabin <- glm(formula = p_dev ~ termination, weights = tot, family = "betabinomial", data = dd)
 summary(fit_betabin)
 
 fit_betabin <- glm(formula = p_dev ~ time_min, weights = tot, family = "betabinomial", data = dd)
+summary(fit_betabin)
+
 sfit <- round(summary(fit_betabin)$coefficients, 3)
 pr_fit <- profile(fit_betabin)
 confint(pr_fit)
@@ -66,7 +98,7 @@ ndata <- unique(ndata[, c("time_min", "fit_resp", "right_upr", "right_lwr")])
 
 pCTs <- ggplot(data = dd, aes(x = time_min, y = p_dev)) +
   geom_point(aes(size=tot), alpha=0.5) +
-  labs(y = "Proportion of developing embryos", size = "", x = "Time (min)") +
+  labs(y = "Proportion of offspring", size = "", x = "Time (min)") +
   theme(legend.position = "none",
         axis.text = element_text(size = 11),
         axis.title = element_text(size = 14),
