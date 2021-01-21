@@ -1,5 +1,6 @@
 rm(list = ls())
 
+library("aod")
 library("glmmTMB")
 library("bbmle")
 library("ggplot2")
@@ -11,35 +12,35 @@ library("dplyr")
 
 dd <- read.csv(file = "Lsax_fertilisation_time/data/Fert_Lsax_clean.csv", stringsAsFactors = FALSE)
 
-table(dd$stage)
-dd[dd$stage=="SAME",]
+# table(dd$stage)
+# dd[dd$stage=="SAME",]
 
 dd <- dd[dd$vip=="S", ]
 dd$vip <- NULL
 dd$misdev <- NULL
 
-dd[dd$termination=="NATURAL", ]
-round(range(dd[dd$termination=="NATURAL", "p_dev"]), 1)
-nrow(dd[dd$termination=="NATURAL", ])
-table(dd$termination)
-table(dd$ecotype)
+# dd[dd$termination=="NATURAL", ]
+# round(range(dd[dd$termination=="NATURAL", "p_dev"]), 1)
+# nrow(dd[dd$termination=="NATURAL", ])
+# table(dd$termination)
+# table(dd$ecotype)
 
 dd$proj <- ifelse(test = dd$notes=="pilot", yes = "pilot", no = "followup")
 
 # write.table(x = dd, file = "/Users/samuelperini/Desktop/Fert_Lsax.csv", append = FALSE, quote = FALSE,
 #             sep = ",", row.names = FALSE, col.names = TRUE)
 
-data.frame(table(dd$ecotype, dd$proj))
-tb1 <- data.frame(table(dd$termination, dd$ecotype, dd$time_min, dd$proj))
-tb1 <- tb1[tb1$Freq!=0, ]
+# data.frame(table(dd$ecotype, dd$proj))
+# tb1 <- data.frame(table(dd$termination, dd$ecotype, dd$time_min, dd$proj))
+# tb1 <- tb1[tb1$Freq!=0, ]
 
 dd <- dd[dd$termination!="NATURAL", ]
 
 dd$tot <- dd$egg+dd$dev
 dd$p_egg <- dd$egg/dd$tot
-table(dd$tot)
+# table(dd$tot)
 
-d0 <- nrow(dd[dd$tot==0,])
+# d0 <- nrow(dd[dd$tot==0,])
 
 dd <- dd[dd$tot!=0,]
 
@@ -48,10 +49,10 @@ dd$time_min <- factor(x = dd$time_min, levels = c("Control", "1", "5", "10+"))
 dd$termination <- factor(x = dd$termination, levels = c("NONE", "ARTIFICIAL"))
 # dd$termination <- factor(x = dd$termination, levels = c("NONE", "ARTIFICIAL", "NATURAL"))
 
-tb1 <- data.frame(table(dd$termination, dd$ecotype, dd$time_min, dd$proj))
-tb1 <- tb1[tb1$Freq!=0, ]
-sum(tb1$Freq)
-data.frame(table(dd$time_min))
+# tb1 <- data.frame(table(dd$termination, dd$ecotype, dd$time_min, dd$proj))
+# tb1 <- tb1[tb1$Freq!=0, ]
+# sum(tb1$Freq)
+# data.frame(table(dd$time_min))
 
 CTs <- ggplot(data = dd, aes(x = time_min, y = p_dev)) +
   geom_point(aes(size=tot), alpha=0.4) +
@@ -66,11 +67,11 @@ CT + CTs
 
 range(dd$tot)
 
-fit <- Coef(vglm(cbind(dev, tot-dev) ~ 1, betabinomial, data = dd, trace = FALSE))
-fit
+# fit <- Coef(vglm(cbind(dev, tot-dev) ~ 1, betabinomial, data = dd, trace = FALSE))
+# fit
 
 detach("package:VGAM", unload=TRUE)
-table(dd$proj)
+# table(dd$proj)
 
 ggplot(data = dd, aes(x = proj, y = p_dev)) +
   geom_point(aes(size=tot), alpha=0.4) +
@@ -98,8 +99,9 @@ mcq <- chisq.test(dtm$x[-1])
 mcq
 mcq$expected
 
-
-
+#######
+# GLM #
+#######
 # fit_betabin <- glm(formula = p_dev ~ proj, weights = tot, family = "betabinomial", data = dd)
 # summary(fit_betabin)
 
@@ -140,6 +142,7 @@ sfit <- round(summary(fit_betabin)$coefficients, 3)
 # pr_fit <- profile(fit_betabin)
 # confint(pr_fit)
 
+# CALCULATE CIs
 fam <- family(fit_betabin)
 fam
 str(fam)
@@ -214,3 +217,116 @@ pCTs <- ggplot(data = dd, aes(x = termination, y = p_dev)) +
                 width = 0.1, size = 1) +
   geom_point(data = ndata, aes(x = termination, y = fit_resp), col = "blue", size = 3)
 pCTs
+
+#######
+# AOD #
+#######
+rm(list = setdiff(ls(), "ilink"))
+data <- read.csv("/Users/samuelperini/Desktop/Fert_Lsax.csv")
+# data <- read.csv("/Users/samuelperini/Desktop/Book1.csv")
+head(data)
+str(data)
+
+levels(data$class) <- c("nat", "trt1", "trt10p", "trt5", "ctrl")
+
+data$tot <- data$egg + data$dev
+data <- data[data$tot>0,]
+
+#install.packages("aod")
+library(aod)
+
+# TREATMENT MODEL
+mbeta <- betabin(cbind(dev,egg)~class,~1,data=data[data$tot>0,],link="logit")
+summary(mbeta)
+AIC(mbeta)
+
+# NULL MODEL
+mnul <- betabin(cbind(dev,egg)~1,~1,data=data[data$tot>0,],link="logit")
+AIC(mnul)
+
+anova(mbeta, mnul)
+# car::Anova(mbeta, type=3)
+# TukeyHSD(mbeta)
+
+# library(multcomp)
+# glht(mbeta, linfct = mcp(tension = "Tukey"))
+
+N <- length(data$snail_ID) # total sample size
+k <- length(unique(data$class)) # number of treatments
+n <- as.vector(table(data$class)) # number of samples per group
+
+# Mean Square
+pp <- split(data, data$class)
+
+sse <- Reduce('+', lapply(pp, function(x) {
+  (length(x[,1]) - 1) * sd(x[,"p_dev"], na.rm = TRUE)^2
+}))
+
+mse <- sse / (N - k)
+mse
+unique(data$class)
+# means <- sapply(pp, FUN = function(x) mean(x[,"p_dev"]))
+
+summary(mbeta)@Coef
+ndata <- bind_cols(data, setNames(as_tibble(predict(mbeta, data, se.fit = TRUE)[1:2]),
+                                  c('fit_link','se_link')))
+ndata <- mutate(ndata,
+                fit_resp  = ilink(fit_link),
+                right_upr = ilink(fit_link + (2 * se_link)),
+                right_lwr = ilink(fit_link - (2 * se_link)))
+ndata <- add_column(ndata, fit = predict(mbeta, newdata = ndata, type = 'response'))
+ndata$fit <- round(ndata$fit, 3)
+head(ndata)
+ndata <- unique(ndata[, c("class", "fit", "right_upr", "right_lwr")])
+ndata$class <- factor(x = ndata$class, levels = c("ctrl", "trt1", "trt5", "trt10p", "nat"))
+ndata <- ndata[order(ndata$class),]
+
+means <- ndata$fit
+names(means) <- levels(ndata$class)
+
+outd <- data.frame(comp=combn(x = names(means), m = 2, FUN = function(x) paste(x[1], x[2], sep = "-")),
+                   mean=combn(x = as.vector(means), m = 2, FUN = function(x) round(abs(x[1]-x[2]), 2)),
+                   se=combn(x = n, m = 2, FUN = function(x) round(sqrt(mse/2 * (1/x[1] + 1/x[2])), 2)))
+outd$qstat <- outd$mean/outd$se
+
+# q-value
+q.value <- qtukey(p = 0.95, nmeans = k, df = N - k)
+# Tukey Honestly Signficant Difference
+outd$hsd <- round(outd$se * q.value, 2)
+outd$signif <- ifelse(outd$mean >= outd$hsd, yes = TRUE, no = FALSE)
+outd
+
+###########
+# BETAREG #
+###########
+rm(list = ls())
+data <- read.csv("/Users/samuelperini/Desktop/Fert_Lsax.csv")
+head(data)
+str(data)
+
+data$tot <- data$egg + data$dev
+data <- data[data$tot!=0, ]
+
+((N-1)+0.5)/N
+
+data$egg <- data$egg + 1
+data$dev <- data$dev + 1
+data$tot <- data$egg + data$dev
+data$p_dev <- data$dev/data$tot
+
+# install.packages("betareg")
+library(betareg)
+
+levels(data$class) <- c("nat", "trt1", "trt10p", "trt5", "ctrl")
+data$class <- factor(x = data$class, levels = c("ctrl", "trt1", "trt5", "trt10p", "nat"))
+
+lrs2 <- data
+lrs2$p_dev <- lrs2$p_dev + 0.000002
+mod1 <- betareg(p_dev ~ time_min, data = lrs2)
+hist(lrs2$RAT, breaks=20)
+summary(mod1)
+Anova(mod1, type=3)
+par(mfrow=c(2,2))
+plot(mod1)
+AIC(mod1)
+BIC(mod1)
