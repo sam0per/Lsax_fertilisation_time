@@ -5,8 +5,8 @@ library("glmmTMB")
 library("bbmle")
 library("ggplot2")
 library("patchwork")
-library("emdbook")
-library("VGAM")
+# library("emdbook")
+# library("VGAM")
 library("tibble")
 library("dplyr")
 
@@ -70,7 +70,7 @@ range(dd$tot)
 # fit <- Coef(vglm(cbind(dev, tot-dev) ~ 1, betabinomial, data = dd, trace = FALSE))
 # fit
 
-detach("package:VGAM", unload=TRUE)
+# detach("package:VGAM", unload=TRUE)
 # table(dd$proj)
 
 ggplot(data = dd, aes(x = proj, y = p_dev)) +
@@ -135,6 +135,7 @@ fit_betabin <- glm(formula = p_dev ~ time_min + proj, weights = tot, family = "b
 fit_betabin <- glm(formula = p_dev ~ termination * proj, weights = tot, family = "betabinomial", data = dd)
 fit_betabin <- glm(formula = p_dev ~ time_min * proj, weights = tot, family = "betabinomial", data = dd)
 
+fit_betabin <- glm(formula = p_dev ~ time_min, weights = tot, family = "betabinomial", data = dd)
 summary(fit_betabin)
 # anova(fit_betabin)
 
@@ -158,10 +159,10 @@ ndata <- mutate(ndata,
 ndata <- add_column(ndata, fit = predict(fit_betabin, newdata = ndata, type = 'response'))
 head(ndata)
 ndata <- unique(ndata[, c("time_min", "fit_resp", "right_upr", "right_lwr")])
-ndata <- unique(ndata[, c("termination", "fit_resp", "right_upr", "right_lwr")])
-ndata <- unique(ndata[, c("termination", "proj", "fit_resp", "right_upr", "right_lwr")])
-cbind(ndata[,1], round(ndata[, -1], 2))
-cbind(ndata[,1:2], round(ndata[, -1:-2], 2))
+# ndata <- unique(ndata[, c("termination", "fit_resp", "right_upr", "right_lwr")])
+# ndata <- unique(ndata[, c("termination", "proj", "fit_resp", "right_upr", "right_lwr")])
+# cbind(ndata[,1], round(ndata[, -1], 2))
+# cbind(ndata[,1:2], round(ndata[, -1:-2], 2))
 
 pCTs <- ggplot(data = dd, aes(x = termination, y = p_dev)) +
   geom_point(aes(size=tot), alpha=0.5) +
@@ -181,10 +182,10 @@ pCTs
 
 pCTs <- ggplot(data = dd, aes(x = time_min, y = p_dev)) +
   geom_point(aes(size=tot), alpha=0.5) +
-  labs(y = "Proportion of offspring", size = "", x = "Time (min)") +
+  labs(y = "Proportion of embryos", size = "", x = "Time (min)") +
   theme(legend.position = "none",
-        axis.text = element_text(size = 11),
-        axis.title = element_text(size = 14),
+        axis.text = element_text(size = 12),
+        axis.title = element_text(size = 12),
         panel.background = element_blank(),
         panel.border = element_rect(colour = "black", fill=NA, size=0.5),
         axis.line = element_line(size = 0.2, linetype = "solid",
@@ -195,7 +196,7 @@ pCTs <- ggplot(data = dd, aes(x = time_min, y = p_dev)) +
   geom_point(data = ndata, aes(x = time_min, y = fit_resp), col = "blue", size = 3)
 pCTs
 ggsave(filename = "Lsax_fertilisation_time/figures/prop_dev_betabinomial.pdf", plot = pCTs,
-       scale = 0.7, dpi = "screen")
+       scale = 0.35, dpi = "print")
 # dd[dd$p_dev==0,]  
 
 ddt <- dd[dd$termination=="ARTIFICIAL", ]
@@ -232,18 +233,22 @@ levels(data$class) <- c("nat", "trt1", "trt10p", "trt5", "ctrl")
 data$tot <- data$egg + data$dev
 data <- data[data$tot>0,]
 
-#install.packages("aod")
-library(aod)
+# install.packages("aod")
+# library(aod)
 
 # TREATMENT MODEL
 mbeta <- betabin(cbind(dev,egg)~class,~1,data=data[data$tot>0,],link="logit")
-summary(mbeta)
+sbeta <- summary(mbeta)
+round(sbeta@Phi, 2)
+round(sbeta@Coef, 2)
 AIC(mbeta)
 
 # NULL MODEL
 mnul <- betabin(cbind(dev,egg)~1,~1,data=data[data$tot>0,],link="logit")
+summary(mnul)
 AIC(mnul)
 
+# AICtab(mbeta, mnul)
 anova(mbeta, mnul)
 # car::Anova(mbeta, type=3)
 # TukeyHSD(mbeta)
@@ -252,11 +257,16 @@ anova(mbeta, mnul)
 # glht(mbeta, linfct = mcp(tension = "Tukey"))
 
 N <- length(data$snail_ID) # total sample size
+
 k <- length(unique(data$class)) # number of treatments
+k <- length(unique(data$termination)) # number of treatments
+
 n <- as.vector(table(data$class)) # number of samples per group
+n <- as.vector(table(data$termination)) # number of samples per group
 
 # Mean Square
 pp <- split(data, data$class)
+pp <- split(data, data$termination)
 
 sse <- Reduce('+', lapply(pp, function(x) {
   (length(x[,1]) - 1) * sd(x[,"p_dev"], na.rm = TRUE)^2
@@ -264,25 +274,28 @@ sse <- Reduce('+', lapply(pp, function(x) {
 
 mse <- sse / (N - k)
 mse
-unique(data$class)
+# unique(data$class)
 # means <- sapply(pp, FUN = function(x) mean(x[,"p_dev"]))
 
-summary(mbeta)@Coef
-ndata <- bind_cols(data, setNames(as_tibble(predict(mbeta, data, se.fit = TRUE)[1:2]),
-                                  c('fit_link','se_link')))
-ndata <- mutate(ndata,
-                fit_resp  = ilink(fit_link),
-                right_upr = ilink(fit_link + (2 * se_link)),
-                right_lwr = ilink(fit_link - (2 * se_link)))
-ndata <- add_column(ndata, fit = predict(mbeta, newdata = ndata, type = 'response'))
-ndata$fit <- round(ndata$fit, 3)
-head(ndata)
-ndata <- unique(ndata[, c("class", "fit", "right_upr", "right_lwr")])
-ndata$class <- factor(x = ndata$class, levels = c("ctrl", "trt1", "trt5", "trt10p", "nat"))
-ndata <- ndata[order(ndata$class),]
+# summary(mbeta)@Coef
+# ndata <- bind_cols(data, setNames(as_tibble(predict(mbeta, data, se.fit = TRUE)[1:2]),
+#                                   c('fit_link','se_link')))
+# ndata <- mutate(ndata,
+#                 fit_resp  = ilink(fit_link),
+#                 right_upr = ilink(fit_link + (2 * se_link)),
+#                 right_lwr = ilink(fit_link - (2 * se_link)))
+# ndata <- add_column(ndata, fit = predict(mbeta, newdata = ndata, type = 'response'))
+# ndata$fit <- round(ndata$fit, 3)
+# head(ndata)
+# ndata <- unique(ndata[, c("class", "fit", "right_upr", "right_lwr")])
+# ndata$class <- factor(x = ndata$class, levels = c("ctrl", "trt1", "trt5", "trt10p", "nat"))
+# ndata <- ndata[order(ndata$class),]
+# ndata
 
-means <- ndata$fit
-names(means) <- levels(ndata$class)
+# means <- ndata$fit
+# names(means) <- levels(ndata$class)
+means <- tapply(data$p_dev, data$class, mean)
+means <- tapply(data$p_dev, data$termination, mean)
 
 outd <- data.frame(comp=combn(x = names(means), m = 2, FUN = function(x) paste(x[1], x[2], sep = "-")),
                    mean=combn(x = as.vector(means), m = 2, FUN = function(x) round(abs(x[1]-x[2]), 2)),
@@ -295,7 +308,8 @@ q.value <- qtukey(p = 0.95, nmeans = k, df = N - k)
 outd$hsd <- round(outd$se * q.value, 2)
 outd$signif <- ifelse(outd$mean >= outd$hsd, yes = TRUE, no = FALSE)
 outd
-
+means
+combn(x = c("T1", "T5", "T10+"), m = 2, FUN = function(x) paste(x[1], x[2], sep = "-"))
 ###########
 # BETAREG #
 ###########
