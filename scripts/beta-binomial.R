@@ -34,6 +34,7 @@ dd$proj <- ifelse(test = dd$notes=="pilot", yes = "pilot", no = "followup")
 # tb1 <- data.frame(table(dd$termination, dd$ecotype, dd$time_min, dd$proj))
 # tb1 <- tb1[tb1$Freq!=0, ]
 
+# nrow(dd[dd$termination=="NATURAL", ])
 dd <- dd[dd$termination!="NATURAL", ]
 
 dd$tot <- dd$egg+dd$dev
