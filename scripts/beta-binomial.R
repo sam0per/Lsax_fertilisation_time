@@ -10,6 +10,7 @@ library("patchwork")
 library("tibble")
 library("dplyr")
 
+# setwd(dir = "Documents/research/projects/4.fert_time/")
 dd <- read.csv(file = "Lsax_fertilisation_time/data/Fert_Lsax_clean.csv", stringsAsFactors = FALSE)
 
 # table(dd$stage)
@@ -182,7 +183,7 @@ pCTs <- ggplot(data = dd, aes(x = termination, y = p_dev)) +
 pCTs
 
 pCTs <- ggplot(data = dd, aes(x = time_min, y = p_dev)) +
-  geom_point(aes(size=tot), alpha=0.5) +
+  geom_point(aes(size=log(tot)), alpha=0.5) +
   labs(y = "Proportion of embryos", size = "", x = "Time (min)") +
   theme(legend.position = "none",
         axis.text = element_text(size = 12),
@@ -194,10 +195,12 @@ pCTs <- ggplot(data = dd, aes(x = time_min, y = p_dev)) +
         panel.grid = element_line(colour = "gray70", size = 0.2)) +
   geom_errorbar(data = ndata, aes(y = fit_resp, ymin = right_lwr, ymax = right_upr),
                 width = 0.1, size = 1) +
-  geom_point(data = ndata, aes(x = time_min, y = fit_resp), col = "blue", size = 3)
+  geom_point(data = ndata, aes(x = time_min, y = fit_resp), col = "blue", size = 3,
+             alpha=1)
 pCTs
 ggsave(filename = "Lsax_fertilisation_time/figures/prop_dev_betabinomial.pdf", plot = pCTs,
-       scale = 0.35, dpi = "print")
+       scale = 0.45, dpi = "print")
+log(range(dd$tot))
 # dd[dd$p_dev==0,]  
 
 ddt <- dd[dd$termination=="ARTIFICIAL", ]

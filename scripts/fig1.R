@@ -1,4 +1,6 @@
 dm <- read.csv("../Littorina_mating/data/CZ_all_mating_clean.csv", sep = ";")
+dm <- read.csv("Documents/research/projects/2.mating/data/CZ_all_mating_clean.csv", sep = ";")
+# CZ_data <- read.csv("Documents/research/projects/2.mating/data/CZ_all_mating_clean.csv", sep = ";")
 head(dm)
 
 library(ggplot2)
