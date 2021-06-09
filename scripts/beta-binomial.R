@@ -183,7 +183,7 @@ pCTs <- ggplot(data = dd, aes(x = termination, y = p_dev)) +
 pCTs
 
 pCTs <- ggplot(data = dd, aes(x = time_min, y = p_dev)) +
-  geom_point(aes(size=log(tot)), alpha=0.5) +
+  geom_point(aes(size=log(tot)), alpha=0.5, position = "jitter") +
   labs(y = "Proportion of embryos", size = "", x = "Time (min)") +
   theme(legend.position = "none",
         axis.text = element_text(size = 12),
@@ -198,8 +198,8 @@ pCTs <- ggplot(data = dd, aes(x = time_min, y = p_dev)) +
   geom_point(data = ndata, aes(x = time_min, y = fit_resp), col = "blue", size = 3,
              alpha=1)
 pCTs
-ggsave(filename = "Lsax_fertilisation_time/figures/prop_dev_betabinomial.pdf", plot = pCTs,
-       scale = 0.45, dpi = "print")
+ggsave(filename = "Lsax_fertilisation_time/figures/prop_dev_betabinomial_jitt.pdf", plot = pCTs,
+       scale = 0.55, dpi = "print")
 log(range(dd$tot))
 # dd[dd$p_dev==0,]  
 
