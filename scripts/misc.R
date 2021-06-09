@@ -1,3 +1,9 @@
+#----Referee 1 comment on size
+dd <- read.csv("Lsax_fertilisation_time/data/FLs_size_mm_sex.csv")
+dd <- dd[dd$vip=="S",]
+aggregate(dd$size_mm, list(dd$sex, dd$ecotype), mean)
+aggregate(dd$size_mm, list(dd$sex, dd$ecotype), sd)
+
 # TEST DIFFERENCE BETWEEN DATASETS
 dl$proj <- ifelse(test = dl$notes=="pilot", yes = "pilot", no = "follow-up")
 tt <- intersect(unique(dl$time_min[dl$proj=="pilot"]), unique(dl$time_min[dl$proj=="follow-up"]))

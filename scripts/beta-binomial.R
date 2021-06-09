@@ -230,6 +230,7 @@ head(data)
 str(data)
 
 levels(data$class) <- c("nat", "trt1", "trt10p", "trt5", "ctrl")
+aggregate(data$size_mm, list(data$sex, data$ecotype), mean)
 
 data$tot <- data$egg + data$dev
 data <- data[data$tot>0,]
